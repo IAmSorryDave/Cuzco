@@ -116,6 +116,6 @@ class GradioUIWithBackupInference(GradioUI):
 # Use GradioUI from smolagents for the app interface
 if __name__ == "__main__":
     ui = GradioUIWithBackupInference(
-        agent=next(GradioUIWithBackupInference.agent_series.yield_inference_service_switching_tool_calling_agent())
+        agent=next(GradioUIWithBackupInference.agent_series.yield_dynamic_inference_service_tool_calling_agent())
     )
     ui.launch(share=False, server_name="0.0.0.0", server_port=7860)
