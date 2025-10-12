@@ -74,7 +74,7 @@ class ToolCallingAgentSeries:
         self.tools = list(tools)
         self.ollama_started = False
 
-    def yield_inference_service_switching_tool_calling_agent(self):
+    def yield_dynamic_inference_service_tool_calling_agent(self):
 
         while user_has_hf_inference_credits(os.environ.get("HF_TOKEN")):
 
