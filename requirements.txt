@@ -1,0 +1,2 @@
+smolagents[gradio,litellm]
+huggingface_hub

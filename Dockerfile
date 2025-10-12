@@ -12,14 +12,15 @@ ENV OLLAMA_MODEL=qwen2.5-coder:0.5b-instruct
 RUN ollama serve & sleep 5 ; ollama pull $OLLAMA_MODEL ; echo "kill 'ollama serve' process" ; ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9
 
 # Copy server script
-COPY backup_server.py /app/backup_server.py
-COPY requirments.txt /app/requirments.txt
+COPY app.py /app/app.py
+COPY my_tools.py /app/my_tools.py
+COPY requirements.txt /app/requirements.txt
 WORKDIR /app
 
-RUN pip install --no-cache-dir -r requirments.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port for Gradio
-EXPOSE 5000
+EXPOSE 7860
 
 # Entrypoint
-CMD ["python", "backup_server.py"]
+CMD ["python", "app.py"]
