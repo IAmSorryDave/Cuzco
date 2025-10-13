@@ -13,3 +13,5 @@ fi
 
 echo "Stopping container: $CONTAINER_ID..."
 docker stop $CONTAINER_ID
+
+docker system prune -a

@@ -7,11 +7,11 @@ import gradio as gr
 from litellm import APIConnectionError
 from huggingface_hub import HfApi, InferenceClient
 from my_tools import my_custom_tool
-from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, ToolCallingAgent
+from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, CodeAgent
 from time import sleep
 
 MODEL_PROVIDER = os.environ.get("MODEL_PROVIDER", "Qwen")
-MODEL_PARAMS = os.environ.get("MODEL_PARAMS", "0.5B")
+MODEL_PARAMS = os.environ.get("MODEL_PARAMS", "3b")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", f"{MODEL_PROVIDER.lower()}2.5-coder:{MODEL_PARAMS}-instruct")
 OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 
@@ -68,7 +68,13 @@ def return_local_model_server_connection(retry_interval : int = 10):
 
         return client_connection_to_ollama_server
 
-class ToolCallingAgentSeries:
+class AgentSeries:
+
+    AgentType = CodeAgent
+
+    stream_outputs = True
+
+    planning_interval = 3
 
     def __init__(self, *tools):
         self.tools = list(tools)
@@ -80,9 +86,11 @@ class ToolCallingAgentSeries:
 
             inference_client = InferenceClientModel(model_id=f"{MODEL_PROVIDER}/{OLLAMA_MODEL}")
 
-            agent = ToolCallingAgent(
+            agent = self.AgentType(
                 model=inference_client,
-                tools=self.tools
+                tools=self.tools,
+                planning_interval=self.planning_interval,
+                stream_outputs=self.stream_outputs
             )
 
             yield agent
@@ -94,9 +102,11 @@ class ToolCallingAgentSeries:
 
             local_inference_client = return_local_model_server_connection()
 
-            agent = ToolCallingAgent(
+            agent = self.AgentType(
                 model=local_inference_client,
-                tools=self.tools
+                tools=self.tools,
+                planning_interval=self.planning_interval,
+                stream_outputs=self.stream_outputs
             )
 
             yield agent
@@ -104,18 +114,18 @@ class ToolCallingAgentSeries:
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = ToolCallingAgentSeries(*[my_custom_tool])
+    agent_series = AgentSeries(*[my_custom_tool])
 
     def interact_with_agent(self, prompt, messages, session_state):
-
-        self.agent = next(agent_series.yield_inference_service_switching_tool_calling_agent())
+        
+        self.agent = next(self.agent_series.yield_dynamic_inference_service_tool_calling_agent())
 
         return super().interact_with_agent(prompt, messages, session_state)
 
 
 # Use GradioUI from smolagents for the app interface
 if __name__ == "__main__":
-    ui = GradioUIWithBackupInference(
+    ui = GradioUI(
         agent=next(GradioUIWithBackupInference.agent_series.yield_dynamic_inference_service_tool_calling_agent())
     )
     ui.launch(share=False, server_name="0.0.0.0", server_port=7860)

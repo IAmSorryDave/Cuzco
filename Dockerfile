@@ -7,7 +7,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://ollama.com/install.sh | bash
 
-ENV OLLAMA_MODEL=qwen2.5-coder:0.5b-instruct
+ENV OLLAMA_MODEL=qwen2.5-coder:3b-instruct
 
 RUN ollama serve & sleep 5 ; ollama pull $OLLAMA_MODEL ; echo "kill 'ollama serve' process" ; ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9
 
