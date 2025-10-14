@@ -8,7 +8,7 @@ from litellm import APIConnectionError
 from huggingface_hub import HfApi, InferenceClient
 from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, CodeAgent, WebSearchTool, FinalAnswerTool, ToolCallingAgent
 from time import sleep
-from traceback import format_exc()
+from traceback import format_exc
 from warnings import warn
 
 from typing import Generator
@@ -30,7 +30,7 @@ def user_is_logged_into_hugging_face(token : str) -> bool:
         api.whoami()
         exit_value = True
     except Exception as e:
-        logging.error(format_exec())
+        logging.error(format_exc())
         exit_value = False
     finally:
         return exit_value
@@ -38,17 +38,17 @@ def user_is_logged_into_hugging_face(token : str) -> bool:
 def user_has_hugging_face_inference_credits(token : str) -> bool:
     try:
         client = InferenceClient(token=token)
-        client.text_generation("This is a test.", model=HUGGING_FACE_MODEL_ID, max_new_tokens=1)
+        client.text_generation("This is a test", model=HUGGING_FACE_MODEL_ID, max_new_tokens=1)
         exit_value = True
     except Exception as e:
-        logging.error(format_exec())
+        logging.error(format_exc())
         exit_value = False
     finally:
         return exit_value
 
 def check_if_user_is_logged_in_and_has_hf_inference_credits(token : str) -> bool:
     print("Checking if user is logged into Hugging Face and has inference credits")
-    return user_is_logged_into_hugging(token) & user_has_hugging_face_inference_credits(token)
+    return user_is_logged_into_hugging_face(token) & user_has_hugging_face_inference_credits(token)
 
 def ping_ollama_server(host = "http://localhost", port = OLLAMA_PORT, timeout = 2):
     return requests.get(f"{host}:{port}/api/tags", timeout=timeout)
@@ -59,7 +59,7 @@ def start_local_ollama_server() -> bool:
         if ping.status_code == 200:
             exit_value = True
     except Exception as e:
-        logging.error(format_exec())
+        logging.error(format_exc())
         exit_value = False
         subprocess.Popen(["ollama", "serve"])
         for _ in range(10):
@@ -69,7 +69,7 @@ def start_local_ollama_server() -> bool:
                     exit_value = True
                     break
             except Exception as e:
-                logging.error(format_exec())
+                logging.error(format_exc())
                 sleep(1)
     finally:
 

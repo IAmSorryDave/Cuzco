@@ -23,7 +23,6 @@ RUN ollama serve & sleep 5 ; \
 
 # Copy server script
 COPY app.py /app/app.py
-COPY my_tools.py /app/my_tools.py
 COPY requirements.txt /app/requirements.txt
 WORKDIR /app
 
