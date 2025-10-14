@@ -134,7 +134,7 @@ class LanguageModelAgentGenerator(Generator):
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = AgentSeries(*[my_custom_tool])
+    agent_series = LanguageModelAgentGenerator(*[my_custom_tool])
 
     def interact_with_agent(self, prompt, messages, session_state):
         
@@ -145,7 +145,8 @@ class GradioUIWithBackupInference(GradioUI):
 
 # Use GradioUI from smolagents for the app interface
 if __name__ == "__main__":
+    agent_series = LanguageModelAgentGenerator(*[my_custom_tool])
     ui = GradioUI(
-        agent=next(GradioUIWithBackupInference.agent_series)
+        agent=next(agent_series)
     )
     ui.launch(share=False, server_name="0.0.0.0", server_port=7860)
