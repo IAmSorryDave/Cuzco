@@ -1,2 +1,2 @@
-smolagents[gradio,litellm]
+smolagents[gradio,litellm,toolkit]
 huggingface_hub
