@@ -21,5 +21,5 @@ Copy Dockerfile, requirements.txt, and app.py into HF Space files.
 
 ## Environment Variables
 - `HF_TOKEN`: Your Hugging Face API token (required for Hugging Face inference)
-- `OLLAMA_MODEL`: (optional) Model to use with Ollama (default: qwen2.5-coder:3b-instruct)
+- `OLLAMA_MODEL`: (optional) Model to use with Ollama (default: qwen2.5-coder:7b-instruct)
 - `OLLAMA_PORT`: (optional) Ollama server port (default: 11434)
