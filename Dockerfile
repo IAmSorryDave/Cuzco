@@ -1,5 +1,4 @@
-# Dockerfile for backup inference server
-# Uses Hugging Face Inference API if credits are available, otherwise falls back to Ollama
+# Pre-pulls BASE_LANGUAGE_MODEL in the event the application needs to fall back to Ollama.
 
 FROM python:3.12-slim
 
