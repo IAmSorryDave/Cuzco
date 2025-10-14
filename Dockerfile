@@ -3,13 +3,23 @@
 
 FROM python:3.12-slim
 
+ARG LANGUAGE_MODEL_PROVIDER = qwen
+
+ARG LANGUAGE_MODEL_VERSION = 2.5
+
+ARG LANGUAGE_MODEL_PARAMETERS = 3b
+
+ENV BASE_LANGUAGE_MODEL = ${LANGUAGE_MODEL_PROVIDER}${LANGUAGE_MODEL_VERSION}-coder:${LANGUAGE_MODEL_PARAMETERS}-instruct
+
 # Install Ollama (official method)
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://ollama.com/install.sh | bash
 
-ENV OLLAMA_MODEL=qwen2.5-coder:3b-instruct
-
-RUN ollama serve & sleep 5 ; ollama pull $OLLAMA_MODEL ; echo "kill 'ollama serve' process" ; ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+RUN ollama serve & sleep 5 ; \
+    ollama pull $BASE_LANGUAGE_MODEL ; \
+    echo "kill 'ollama serve' process" ; \
+    ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+    
 
 # Copy server script
 COPY app.py /app/app.py
