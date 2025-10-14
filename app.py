@@ -1,4 +1,5 @@
 import os
+import logging
 import subprocess
 import requests
 
@@ -7,6 +8,8 @@ from litellm import APIConnectionError
 from huggingface_hub import HfApi, InferenceClient
 from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, CodeAgent, WebSearchTool, FinalAnswerTool, ToolCallingAgent
 from time import sleep
+from traceback import format_exc()
+from warnings import warn
 
 from typing import Generator
 
@@ -15,56 +18,75 @@ LANGUAGE_MODEL_PROVIDER = os.environ.get("LANGUAGE_MODEL_PROVIDER", "qwen")
 LANGUAGE_MODEL_VERSION = os.environ.get("LANGUAGE_MODEL_VERSION", 2.5)
 OLLAMA_MODEL = os.environ.get(
     "BASE_LANGUAGE_MODEL", 
-    f"{LANGUAGE_MODEL_PROVIDER.title()}{LANGUAGE_MODEL_VERSION}-coder:{LANGUAGE_MODEL_PARAMETERS}-instruct"
+    f"{LANGUAGE_MODEL_PROVIDER}{LANGUAGE_MODEL_VERSION}-coder:{LANGUAGE_MODEL_PARAMETERS}-instruct"
 )
 OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 
-def user_has_hf_inference_credits(token : str) -> bool:
+HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{OLLAMA_MODEL.title()}"
+
+def user_is_logged_into_hugging_face(token : str) -> bool:
     try:
         api = HfApi(token=token)
         api.whoami()
-        client = InferenceClient(token=token)
-        _ = client.text_generation("This is a test.", model=f"{LANGUAGE_MODEL_PROVIDER}/{OLLAMA_MODEL}", max_new_tokens=1)
         exit_value = True
-    except Exception:
+    except Exception as e:
+        logging.error(format_exec())
         exit_value = False
     finally:
         return exit_value
 
-def ping_local_ollama_server():
-    return requests.get(f"http://localhost:{OLLAMA_PORT}/api/tags", timeout=2)
+def user_has_hugging_face_inference_credits(token : str) -> bool:
+    try:
+        client = InferenceClient(token=token)
+        client.text_generation("This is a test.", model=HUGGING_FACE_MODEL_ID, max_new_tokens=1)
+        exit_value = True
+    except Exception as e:
+        logging.error(format_exec())
+        exit_value = False
+    finally:
+        return exit_value
+
+def check_if_user_is_logged_in_and_has_hf_inference_credits(token : str) -> bool:
+    print("Checking if user is logged into Hugging Face and has inference credits")
+    return user_is_logged_into_hugging(token) & user_has_hugging_face_inference_credits(token)
+
+def ping_ollama_server(host = "http://localhost", port = OLLAMA_PORT, timeout = 2):
+    return requests.get(f"{host}:{port}/api/tags", timeout=timeout)
 
 def start_local_ollama_server() -> bool:
     try:
-        ping = ping_local_ollama_server()
+        ping = ping_ollama_server()
         if ping.status_code == 200:
             exit_value = True
-    except Exception:
+    except Exception as e:
+        logging.error(format_exec())
         exit_value = False
         subprocess.Popen(["ollama", "serve"])
         for _ in range(10):
             try:
-                ping = ping_local_ollama_server()
+                ping = ping_ollama_server()
                 if ping.status_code == 200:
                     exit_value = True
-            except Exception:
+                    break
+            except Exception as e:
+                logging.error(format_exec())
                 sleep(1)
     finally:
 
-        if exit_value == False:
-            print("Failed to start Ollama.")
+        if not exit_value:
+            warn("Failed to start local Ollama server.")
         
         return exit_value
 
-def return_local_ollama_server_connection(retry_interval : int = 10):
+def return_ollama_server_client_connection(host = "http://localhost", model = OLLAMA_MODEL, port = OLLAMA_PORT, retry_interval : int = 10):
 
         while 2 + 2 != 5:
 
             try:
                 language_model_client_connection_to_ollama_server = LiteLLMModel(
 
-                    model_id=f"ollama_chat/{OLLAMA_MODEL}",
-                    api_base=f"http://localhost:{OLLAMA_PORT}",
+                    model_id=f"ollama_chat/{model}",
+                    api_base=f"{host}:{port}",
                     
                     )
 
@@ -88,8 +110,8 @@ class LanguageModelAgentGenerator(Generator):
 
     planning_interval = 2
 
-    def __init__(self, *tools):
-        self.tools = list(tools)
+    def __init__(self, *initial_tools):
+        self.tools = list(initial_tools)
         self.__agents_point_to_ollama = False
 
     @property
@@ -100,15 +122,17 @@ class LanguageModelAgentGenerator(Generator):
     def agents_point_to_ollama(self, new_boolean):
         if new_boolean:
             self.__agents_point_to_ollama = new_boolean # Once agents point to Ollama, it should stay that way.
+        else:
+            warn("Ignoring setting of attribute 'agents_point_to_ollama'. Once agents point to Ollama, it should stay that way until application is restarted.")
         
     def throw(self, type=None, value=None, traceback=None):
         raise StopIteration
         
-    def send(self, ignore_me):
+    def send(self, _):
 
-        if user_has_hf_inference_credits(os.environ.get("HF_TOKEN")):
+        if check_if_user_is_logged_in_and_has_hf_inference_credits(os.environ.get("HF_TOKEN", '')):
 
-            inference_client = InferenceClientModel(model_id=f"{LANGUAGE_MODEL_PROVIDER}/{OLLAMA_MODEL}")
+            inference_client = InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID)
 
             agent = self.AgentType(
                 model=inference_client,
@@ -122,7 +146,7 @@ class LanguageModelAgentGenerator(Generator):
             if not self.agents_point_to_ollama:
                 self.agents_point_to_ollama = start_local_ollama_server()
 
-            local_inference_client = return_local_ollama_server_connection()
+            local_inference_client = return_ollama_server_client_connection()
 
             agent = self.AgentType(
                 model=local_inference_client,
