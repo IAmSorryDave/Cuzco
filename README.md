@@ -4,7 +4,7 @@ A platform invariant chatbot template.
 
 ## Usage in Codespace
 
-1. Build the Docker image:
+1. Build and run the Docker image:
 
 	bash up.sh
 
