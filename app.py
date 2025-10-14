@@ -13,16 +13,20 @@ from warnings import warn
 
 from typing import Generator
 
-LANGUAGE_MODEL_PARAMETERS = os.environ.get("LANGUAGE_MODEL_PARAMETERS", "3b")
+LANGUAGE_MODEL_PARAMETERS = os.environ.get("LANGUAGE_MODEL_PARAMETERS", "7b")
 LANGUAGE_MODEL_PROVIDER = os.environ.get("LANGUAGE_MODEL_PROVIDER", "qwen")
 LANGUAGE_MODEL_VERSION = os.environ.get("LANGUAGE_MODEL_VERSION", 2.5)
+
+LANGUAGE_MODEL = f"{LANGUAGE_MODEL_PROVIDER}{LANGUAGE_MODEL_VERSION}-coder:{LANGUAGE_MODEL_PARAMETERS}-instruct"
+
 OLLAMA_MODEL = os.environ.get(
     "BASE_LANGUAGE_MODEL", 
-    f"{LANGUAGE_MODEL_PROVIDER}{LANGUAGE_MODEL_VERSION}-coder:{LANGUAGE_MODEL_PARAMETERS}-instruct"
+    LANGUAGE_MODEL
 )
+
 OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 
-HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{OLLAMA_MODEL.title()}"
+HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{LANGUAGE_MODEL.title().replace(':','-')}"
 
 def user_is_logged_into_hugging_face(token : str) -> bool:
     try:
@@ -35,14 +39,35 @@ def user_is_logged_into_hugging_face(token : str) -> bool:
     finally:
         return exit_value
 
+def ping_hf_inference(token : str) -> None:
+
+    agent = CodeAgent(  
+        tools=list(),
+        max_steps=1,
+        model=InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID, token=token),
+        planning_interval=1,
+        max_print_outputs_length=0
+    )
+
+    agent.run("_", return_full_result = False) 
+    
+    agent.interrupt()
+
 def user_has_hugging_face_inference_credits(token : str) -> bool:
+
+    exit_value = True
+    
     try:
-        client = InferenceClient(token=token)
-        client.text_generation("This is a test", model=HUGGING_FACE_MODEL_ID, max_new_tokens=1)
-        exit_value = True
+ 
+        ping_hf_inference(token)
+        
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == 402:
+            exit_value = False
+
     except Exception as e:
         logging.error(format_exc())
-        exit_value = False
+        
     finally:
         return exit_value
 
@@ -104,7 +129,9 @@ def return_ollama_server_client_connection(host = "http://localhost", model = OL
 
 class LanguageModelAgentGenerator(Generator):
 
-    AgentType = ToolCallingAgent
+    AgentType = CodeAgent
+
+    add_base_tools = True
 
     stream_outputs = True
 
@@ -138,7 +165,8 @@ class LanguageModelAgentGenerator(Generator):
                 model=inference_client,
                 tools=self.tools,
                 planning_interval=self.planning_interval,
-                stream_outputs=self.stream_outputs
+                stream_outputs=self.stream_outputs,
+                add_base_tools=self.add_base_tools
             )
 
         else:
@@ -152,14 +180,14 @@ class LanguageModelAgentGenerator(Generator):
                 model=local_inference_client,
                 tools=self.tools,
                 planning_interval=self.planning_interval,
-                stream_outputs=self.stream_outputs
+                add_base_tools=self.add_base_tools
             )
 
         return agent
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = LanguageModelAgentGenerator(*[WebSearchTool(), FinalAnswerTool()])
+    agent_series = LanguageModelAgentGenerator()
 
     def refresh_agent(self) -> None:
         self.agent = next(self.agent_series)
@@ -266,5 +294,3 @@ if __name__ == "__main__":
     )
 
     ui.launch(share=False, server_name="0.0.0.0", server_port=7860)
-
-
