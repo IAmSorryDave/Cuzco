@@ -138,7 +138,7 @@ class GradioUIWithBackupInference(GradioUI):
 
     def interact_with_agent(self, prompt, messages, session_state):
         
-        self.agent = next(self.agent_series.yield_dynamic_inference_service_tool_calling_agent())
+        self.agent = next(self.agent_series)
 
         return super().interact_with_agent(prompt, messages, session_state)
 
