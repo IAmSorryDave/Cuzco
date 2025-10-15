@@ -17,8 +17,7 @@ RUN apt-get update && apt-get install -y curl && \
 RUN ollama serve & sleep 5 ; \
     ollama pull $BASE_LANGUAGE_MODEL ; \
     echo "kill 'ollama serve' process" ; \
-    ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9
-    
+    ps -ef | grep 'ollama serve' | grep -v grep | awk '{print $2}' | xargs -r kill -9   
 
 # Copy server script
 COPY app.py /app/app.py
@@ -26,6 +25,9 @@ COPY requirements.txt /app/requirements.txt
 WORKDIR /app
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN --mount=type=secret,id=my_secret_id \
+ export HF_TOKEN=$(cat /run/secrets/my_secret_id)
 
 # Expose port for Gradio
 EXPOSE 7860
