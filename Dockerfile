@@ -26,8 +26,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN --mount=type=secret,id=my_secret_id \
- export HF_TOKEN=$(cat /run/secrets/my_secret_id)
+RUN --mount=type=secret,id=env export HF_TOKEN=$(cat /run/secrets/env)
 
 # Expose port for Gradio
 EXPOSE 7860
