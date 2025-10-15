@@ -1,6 +1,6 @@
 # Script to build and run the backup inference server Docker container
 
-IMAGE_NAME="cuzco-backup-inference-server"
+IMAGE_NAME="cuzco"
 PORT=7860
 
 # Build the Docker image
