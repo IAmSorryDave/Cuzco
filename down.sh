@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to stop the backup inference server Docker container
 
-IMAGE_NAME="cuzc"
+IMAGE_NAME="cuzco"
 
 # Find the running container ID for the image
 CONTAINER_ID=$(docker ps -q --filter ancestor=$IMAGE_NAME)
