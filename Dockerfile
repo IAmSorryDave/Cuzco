@@ -14,8 +14,6 @@ ENV BASE_LANGUAGE_MODEL=${LANGUAGE_MODEL_PROVIDER}${LANGUAGE_MODEL_VERSION}-code
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://ollama.com/install.sh | bash
 
-RUN apt-get update && apt-get install -y procps && rm -rf /var/lib/apt/lists/*
-
 RUN ollama serve & sleep 5 ; \
     ollama pull $BASE_LANGUAGE_MODEL ; \
     echo "kill 'ollama serve' process" ; \
