@@ -6,8 +6,8 @@ import huggingface_hub
 
 from collections.abc import Generator
 from litellm import APIConnectionError
-from huggingface_hub import HfApi, InferenceClient
-from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, CodeAgent, WebSearchTool, FinalAnswerTool, ToolCallingAgent
+from huggingface_hub import InferenceClient
+from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel
 from time import sleep
 from traceback import format_exc
 from warnings import warn
