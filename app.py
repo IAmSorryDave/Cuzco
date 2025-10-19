@@ -2,11 +2,12 @@ import os
 import logging
 import subprocess
 import requests
+import huggingface_hub
 
 from collections.abc import Generator
 from litellm import APIConnectionError
 from huggingface_hub import HfApi, InferenceClient
-from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel
+from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel, CodeAgent, WebSearchTool, FinalAnswerTool, ToolCallingAgent
 from time import sleep
 from traceback import format_exc
 from warnings import warn
@@ -28,10 +29,10 @@ OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 
 HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{LANGUAGE_MODEL.title().replace(':','-')}"
 
-def user_is_logged_into_hugging_face(token : str) -> bool:
+
+def user_can_login_to_hf(token : str) -> bool:
     try:
-        api = HfApi(token=token)
-        api.whoami()
+        huggingface_hub.login(token=token)
         exit_value = True
     except Exception as e:
         logging.error(format_exc())
@@ -71,9 +72,9 @@ def user_has_hugging_face_inference_credits(token : str) -> bool:
     finally:
         return exit_value
 
-def check_if_user_is_logged_in_and_has_hf_inference_credits(token : str) -> bool:
-    print("Checking if user is logged into Hugging Face and has inference credits")
-    return user_is_logged_into_hugging_face(token) & user_has_hugging_face_inference_credits(token)
+def check_if_user_can_login_to_hf_and_has_hf_inference_credits(token : str) -> bool:
+    print("Checking if user can log into Hugging Face and has inference credits")
+    return user_can_login_to_hf(token) & user_has_hugging_face_inference_credits(token)
 
 def ping_ollama_server(host = "http://localhost", port = OLLAMA_PORT, timeout = 2):
     return requests.get(f"{host}:{port}/api/tags", timeout=timeout)
@@ -131,13 +132,14 @@ class LanguageModelAgentGenerator(Generator):
 
     AgentType = CodeAgent
 
-    add_base_tools = True
-
     stream_outputs = True
 
     planning_interval = 2
 
+    add_base_tools = True
+
     def __init__(self, *initial_tools):
+        super().__init__()
         self.tools = list(initial_tools)
         self.__agents_point_to_ollama = False
 
@@ -157,7 +159,7 @@ class LanguageModelAgentGenerator(Generator):
         
     def send(self, _):
 
-        if check_if_user_is_logged_in_and_has_hf_inference_credits(os.environ.get("HF_TOKEN", '')):
+        if check_if_user_can_login_to_hf_and_has_hf_inference_credits(os.environ.get("HF_TOKEN", '')):
 
             inference_client = InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID)
 
@@ -180,6 +182,7 @@ class LanguageModelAgentGenerator(Generator):
                 model=local_inference_client,
                 tools=self.tools,
                 planning_interval=self.planning_interval,
+                stream_outputs=self.stream_outputs,
                 add_base_tools=self.add_base_tools
             )
 
@@ -187,7 +190,7 @@ class LanguageModelAgentGenerator(Generator):
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = LanguageModelAgentGenerator()
+    agent_series = LanguageModelAgentGenerator(*[WebSearchTool(), FinalAnswerTool()])
 
     def refresh_agent(self) -> None:
         self.agent = next(self.agent_series)
