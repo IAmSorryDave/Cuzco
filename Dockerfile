@@ -11,6 +11,8 @@ ARG LANGUAGE_MODEL_PARAMETERS=7b
 
 ENV BASE_LANGUAGE_MODEL=${LANGUAGE_MODEL_PROVIDER}${LANGUAGE_MODEL_VERSION}-coder:${LANGUAGE_MODEL_PARAMETERS}-instruct
 
+ENV HF_ACCESS_TOKEN=''
+
 # Install Ollama (official method)
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://ollama.com/install.sh | bash

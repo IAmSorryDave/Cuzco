@@ -2,17 +2,26 @@ import os
 import logging
 import subprocess
 import requests
-import huggingface_hub
 
 from collections.abc import Generator
 from litellm import APIConnectionError
-from huggingface_hub import InferenceClient
+from huggingface_hub import InferenceClient, HfApi
+from huggingface_hub.hf_api import HfFolder
 from smolagents import CodeAgent, GradioUI, InferenceClientModel, LiteLLMModel
 from time import sleep
 from traceback import format_exc
 from warnings import warn
 
 from typing import Generator
+
+HfFolder.save_token(os.environ.get('HF_ACCESS_TOKEN', ''))
+
+if HfFolder.get_token():
+    os.environ.pop('HF_ACCESS_TOKEN')
+else:
+    print("Me")
+    HfFolder.delete_token()
+
 
 LANGUAGE_MODEL_PARAMETERS = os.environ.get("LANGUAGE_MODEL_PARAMETERS", "7b")
 LANGUAGE_MODEL_PROVIDER = os.environ.get("LANGUAGE_MODEL_PROVIDER", "qwen")
@@ -30,9 +39,9 @@ OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", 11434))
 HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{LANGUAGE_MODEL.title().replace(':','-')}"
 
 
-def user_can_login_to_hf(token : str) -> bool:
+def user_is_hf_user() -> bool:
     try:
-        huggingface_hub.login(token=token)
+        HfApi().whoami(HfFolder.get_token())
         exit_value = True
     except Exception as e:
         logging.error(format_exc())
@@ -40,12 +49,12 @@ def user_can_login_to_hf(token : str) -> bool:
     finally:
         return exit_value
 
-def ping_hf_inference(token : str) -> None:
+def ping_hf_inference() -> None:
 
     agent = CodeAgent(  
         tools=list(),
         max_steps=1,
-        model=InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID, token=token),
+        model=InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID, token=HfFolder.get_token()),
         planning_interval=1,
         max_print_outputs_length=0
     )
@@ -54,13 +63,13 @@ def ping_hf_inference(token : str) -> None:
     
     agent.interrupt()
 
-def user_has_hugging_face_inference_credits(token : str) -> bool:
+def user_has_hugging_face_inference_credits() -> bool:
 
     exit_value = True
     
     try:
  
-        ping_hf_inference(token)
+        ping_hf_inference()
         
     except requests.exceptions.HTTPError as err:
         if err.response.status_code == 402:
@@ -72,9 +81,9 @@ def user_has_hugging_face_inference_credits(token : str) -> bool:
     finally:
         return exit_value
 
-def check_if_user_can_login_to_hf_and_has_hf_inference_credits(token : str) -> bool:
+def check_if_user_is_hf_user_and_has_hf_inference_credits() -> bool:
     print("Checking if user can log into Hugging Face and has inference credits")
-    return user_can_login_to_hf(token) & user_has_hugging_face_inference_credits(token)
+    return user_is_hf_user() & user_has_hugging_face_inference_credits()
 
 def ping_ollama_server(host = "http://localhost", port = OLLAMA_PORT, timeout = 2):
     return requests.get(f"{host}:{port}/api/tags", timeout=timeout)
@@ -159,9 +168,9 @@ class LanguageModelAgentGenerator(Generator):
         
     def send(self, _):
 
-        if check_if_user_can_login_to_hf_and_has_hf_inference_credits(os.environ.get("HF_TOKEN", '')):
+        if check_if_user_is_hf_user_and_has_hf_inference_credits():
 
-            inference_client = InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID)
+            inference_client = InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID, token=HfFolder.get_token())
 
             agent = self.AgentType(
                 model=inference_client,
@@ -190,7 +199,7 @@ class LanguageModelAgentGenerator(Generator):
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = LanguageModelAgentGenerator(*[WebSearchTool(), FinalAnswerTool()])
+    agent_series = LanguageModelAgentGenerator()
 
     def refresh_agent(self) -> None:
         self.agent = next(self.agent_series)
