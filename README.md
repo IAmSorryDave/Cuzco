@@ -12,14 +12,14 @@ A platform independent chatbot template.
 
 	bash down.sh
 
-## Usage in HF Space
+## HF Inference 
 
 Copy Dockerfile and app.py into HF Space files.
 	
 - If Hugging Face inference credits are available, it uses Hugging Face. If not, it falls back to Ollama.
-- Be sure to configure `HF_TOKEN`: Your Hugging Face API token (required for Hugging Face inference), in your Hugging Face Space if you want to use the HF inference endpoint. Failing to do so will casue inference to defualt to Ollama.
+- Be sure to configure `HF_ACCESS_TOKEN`: Your Hugging Face API token (required for Hugging Face inference), in your Hugging Face Space if you want to use the HF inference endpoint. Failing to do so will casue inference to defualt to Ollama.
 
 ## Environment Variables
-- `HF_TOKEN`: Your Hugging Face API token (required for Hugging Face inference)
+- `HF_ACCESS_TOKEN`: Your Hugging Face API token (required for Hugging Face inference)
 - `OLLAMA_MODEL`: (optional) Model to use with Ollama (default: qwen2.5-7B-instruct)
 - `OLLAMA_PORT`: (optional) Ollama server port (default: 11434)
