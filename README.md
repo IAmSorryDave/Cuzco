@@ -12,9 +12,7 @@ A platform independent chatbot template.
 
 	bash down.sh
 
-## HF Inference 
-
-Copy Dockerfile and app.py into HF Space files.
+## HF Inference.
 	
 - If Hugging Face inference credits are available, it uses Hugging Face. If not, it falls back to Ollama.
 - Be sure to configure `HF_ACCESS_TOKEN`: Your Hugging Face API token (required for Hugging Face inference), in your Hugging Face Space if you want to use the HF inference endpoint. Failing to do so will casue inference to defualt to Ollama.
