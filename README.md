@@ -19,5 +19,5 @@ A platform independent chatbot template.
 
 ## Environment Variables
 - `HF_ACCESS_TOKEN`: Your Hugging Face API token (required for Hugging Face inference)
-- `OLLAMA_MODEL`: (optional) Model to use with Ollama (default: qwen2.5-7B-instruct)
-- `OLLAMA_PORT`: (optional) Ollama server port (default: 11434)
+- `OLLAMA_MODEL`: Model to use with Ollama (default: qwen2.5-7B-instruct)
+- `OLLAMA_PORT`: Ollama server port (default: 11434)
