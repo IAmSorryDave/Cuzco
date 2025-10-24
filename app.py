@@ -62,7 +62,7 @@ def ping_hf_inference() -> None:
         add_base_tools=False
     )
 
-    agent.run({AutoTokenizer.from_pretrained(HUGGING_FACE_MODEL_ID).eos_token}, return_full_result = False) 
+    agent.run(AutoTokenizer.from_pretrained(HUGGING_FACE_MODEL_ID).eos_token, return_full_result = False) 
     
     agent.interrupt()
 
