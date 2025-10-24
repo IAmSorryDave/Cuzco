@@ -2,7 +2,6 @@ import os
 import logging
 import subprocess
 import requests
-import sys
 
 from collections.abc import Generator
 from litellm import APIConnectionError
@@ -224,10 +223,9 @@ class LanguageModelAgentGenerator(Generator):
 
 class GradioUIWithBackupInference(GradioUI):
 
-    agent_series = LanguageModelAgentGenerator()
-
-    def __init__(self,  *args, **kwargs) -> None:    
-        super().__init__(agent=next(self.agent_series), *args, **kwargs)
+    def __init__(self, agent_series : LanguageModelAgentGenerator = LanguageModelAgentGenerator(),  *args, **kwargs) -> None:    
+        super().__init__(agent=next(agent_series), *args, **kwargs)
+        self.agent_series = agent_series
 
     def refresh_agent(self) -> None:
         self.agent = next(self.agent_series)

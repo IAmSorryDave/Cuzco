@@ -3,17 +3,14 @@
 IMAGE_NAME="cuzco"
 PORT=7860
 
-read -s -p "Hugging Face Read Access Token: " TOKEN
-
-export MY_SECRET=TOKEN
+read -s -p "Hugging Face Read Access Token: " NONE_OF_YOUR_BEES_WAX
 
 # Build the Docker image
 # echo "Building Docker image: $IMAGE_NAME..."
-# docker build --secret id=env, env=MY_SECRET -t $IMAGE_NAME .
 
 echo "Building Docker image: $IMAGE_NAME..."
-docker build -t $IMAGE_NAME .
+DOCKER_BUILDKIT=1 docker build --secret id=mums_the_word , src=$NONE_OF_YOUR_BEES_WAX -t $IMAGE_NAME .
 
 # Run the Docker container
 echo "Running Docker container on port $PORT..."
-docker run -p $PORT:$PORT $IMAGE_NAME
+docker run -d -p $PORT:$PORT $IMAGE_NAME
