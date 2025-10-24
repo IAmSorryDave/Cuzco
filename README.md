@@ -1,5 +1,5 @@
 
-# Cuzco : An Emperor with and without clothes. 
+# Cuzco : An Emperor With and Without Clothes. 
 A platform independent chatbot template.
 
 ## Usage in Codespace
