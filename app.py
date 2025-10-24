@@ -20,12 +20,14 @@ from huggingface_hub.hf_api import HfFolder
 HfFolder.save_token(os.environ.get('HF_ACCESS_TOKEN', ''))
 
 if HfFolder.get_token():
+    print("Token")
     os.environ.pop('HF_ACCESS_TOKEN')
 else:
+    print("No Token")
     HfFolder.delete_token()
 
 
-LANGUAGE_MODEL_PARAMETERS, LANGUAGE_MODEL_PROVIDER, LANGUAGE_MODEL_VERSION = os.environ.get("LANGUAGE_MODEL_PARAMETERS", "7b"), os.environ.get("LANGUAGE_MODEL_PROVIDER", "qwen"), os.environ.get("LANGUAGE_MODEL_VERSION", 2.5)
+LANGUAGE_MODEL_PARAMETERS, LANGUAGE_MODEL_PROVIDER, LANGUAGE_MODEL_VERSION = os.environ.get("LANGUAGE_MODEL_PARAMETERS", "3b"), os.environ.get("LANGUAGE_MODEL_PROVIDER", "qwen"), os.environ.get("LANGUAGE_MODEL_VERSION", 2.5)
 
 LANGUAGE_MODEL = f"{LANGUAGE_MODEL_PROVIDER}{LANGUAGE_MODEL_VERSION}-coder:{LANGUAGE_MODEL_PARAMETERS}-instruct"
 
@@ -34,13 +36,19 @@ OLLAMA_MODEL, OLLAMA_PORT = os.environ.get("BASE_LANGUAGE_MODEL", LANGUAGE_MODEL
 HUGGING_FACE_MODEL_ID = f"{LANGUAGE_MODEL_PROVIDER.title()}/{LANGUAGE_MODEL.title().replace(':','-')}"
 
 def user_is_hf_user() -> bool:
-    try:
-        HfApi().whoami(token=HfFolder.get_token())
-        exit_value = True
-    except Exception as e:
-        logging.error(format_exc())
-        exit_value = False
-    finally:
+    
+    exit_value : bool = False # Assume user is not a Hugging Face user until proven otherwise.
+
+    if HfFolder.get_token():
+        try:
+            HfApi(token=HfFolder.get_token()).whoami()
+            exit_value = True
+        except Exception as e:
+            logging.error(format_exc())
+            exit_value = False
+        finally:
+            return exit_value
+    else:
         return exit_value
 
 def ping_hf_inference() -> None:
@@ -55,28 +63,37 @@ def ping_hf_inference() -> None:
         add_base_tools=False
     )
 
-    agent.run(f" {AutoTokenizer.from_pretrained(HUGGING_FACE_MODEL_ID).eos_token}", return_full_result = False) 
+    agent.run({AutoTokenizer.from_pretrained(HUGGING_FACE_MODEL_ID).eos_token}, return_full_result = False) 
     
     agent.interrupt()
 
 def user_has_hugging_face_inference_credits() -> bool:
 
     exit_value : bool = False # Assume user does not have credits until proven otherwise.
+
+    if HfFolder.get_token():
     
-    try:
- 
-        ping_hf_inference()
-        
-    except requests.exceptions.HTTPError as err:
-        if err.response.status_code == 402:
-            exit_value = False
-        else:
+        try:
+    
+            ping_hf_inference()
+
+            exit_value = True
+            
+        except requests.exceptions.HTTPError as err:
+            if err.response.status_code == 402:
+                exit_value = False
+            else:
+                logging.error(format_exc())
+            
+        except Exception as e:
             logging.error(format_exc())
 
-    except Exception as e:
-        logging.error(format_exc())
+        finally:
 
-    finally:
+            return exit_value
+
+    else:
+
         return exit_value
 
 def check_if_user_is_hf_user_and_has_hf_inference_credits() -> bool:
@@ -174,7 +191,7 @@ class LanguageModelAgentGenerator(Generator):
     def throw(self, type=None, value=None, traceback=None):
         raise StopIteration
         
-    def send(self, _):
+    def send(self, _ ):
 
         if check_if_user_is_hf_user_and_has_hf_inference_credits():
 
@@ -209,6 +226,9 @@ class GradioUIWithBackupInference(GradioUI):
 
     agent_series = LanguageModelAgentGenerator()
 
+    def __init__(self,  *args, **kwargs) -> None:    
+        super().__init__(agent=next(self.agent_series), *args, **kwargs)
+
     def refresh_agent(self) -> None:
         self.agent = next(self.agent_series)
 
@@ -220,7 +240,7 @@ class GradioUIWithBackupInference(GradioUI):
         """
         import gradio as gr
 
-        app : gr.interface , pre_interact : Callable  = self.create_app() , self.refresh_agent
+        app , pre_interact = self.create_app() , self.refresh_agent
 
         # If caller provided a pre_interact hook, try to attach it directly to the
         # app's input component(s) so it runs before the agent handler.
@@ -296,13 +316,8 @@ class GradioUIWithBackupInference(GradioUI):
         # Launch the (mutated) app
         app.launch(share=share, **kwargs)
 
-# Use GradioUI from smolagents for the app interface
+def main() -> None:
+    GradioUIWithBackupInference().launch(share=False, server_name="0.0.0.0", server_port=7860)
+
 if __name__ == "__main__":
-
-    # first_agent = next(GradioUIWithBackupInference.agent_series)
-
-    ui = GradioUIWithBackupInference(
-        agent=CodeAgent(model=InferenceClientModel(model_id=HUGGING_FACE_MODEL_ID, token=HfFolder.get_token()), tools=[]),
-    )
-
-    ui.launch(share=False, server_name="0.0.0.0", server_port=7860)
+    main()

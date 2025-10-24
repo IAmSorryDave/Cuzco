@@ -7,7 +7,7 @@ ARG LANGUAGE_MODEL_PROVIDER=qwen
 
 ARG LANGUAGE_MODEL_VERSION=2.5
 
-ARG LANGUAGE_MODEL_PARAMETERS=7b
+ARG LANGUAGE_MODEL_PARAMETERS=3b
 
 ENV BASE_LANGUAGE_MODEL=${LANGUAGE_MODEL_PROVIDER}${LANGUAGE_MODEL_VERSION}-coder:${LANGUAGE_MODEL_PARAMETERS}-instruct
 
@@ -28,7 +28,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN --mount=type=secret,id=env export HF_ACCESS_TOKEN=$(cat /run/secrets/env)
+# RUN --mount=type=secret,id=env export HF_ACCESS_TOKEN=$(cat /run/secrets/env)
 
 # Expose port for Gradio
 EXPOSE 7860
